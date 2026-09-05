@@ -35,7 +35,12 @@
       };
 
       perSystem =
-        { config, pkgs, system, ... }:
+        {
+          config,
+          pkgs,
+          system,
+          ...
+        }:
         {
           formatter = pkgs.nixfmt-rfc-style;
 
