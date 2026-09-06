@@ -21,6 +21,23 @@
 }:
 let
   cfg = config.services.firmwareProvisioning;
+  # PRIOR ART: systemd's own LoadCredential=, which nixpkgs already uses for exactly
+  # this shape -- nixos/modules/services/networking/cloudflared.nix:406 loads the
+  # tunnel credentials + cert straight off an operator-supplied path. Grepped the
+  # pinned nixpkgs for it; the option exists and fits the general idea, so a copy
+  # unit is still custom ON PURPOSE, for three things credentials cannot do:
+  #   * OPTIONAL sources. `LoadCredential=ID:/abs/path` is FATAL when the file is
+  #     absent; systemd.exec(5) grants the non-fatal case only to an omitted path or
+  #     a bare credential identifier resolved from the credstore, and the
+  #     `SetCredential=` fallback that softens it takes a LITERAL value the same page
+  #     forbids for secret data. `required = false` + `docsHint` is that missing mode.
+  #   * SHARING one planted file. $CREDENTIALS_DIRECTORY is per-unit and scoped to the
+  #     unit's UID, so N consumers means N declarations and N private copies; one /run
+  #     target plus list-valued `before`/`requiredBy` feeds them all from one unit.
+  #   * `postInstall`. A credential has no post-load hook, and some planted files only
+  #     take effect via a side effect (`rfkill unblock wifi`).
+  # NOT a reason: LoadCredential= is settable on any upstream unit, and so is the
+  # RequiresMountsFor= below -- neither of those on its own would justify a module.
   mkService =
     name: f:
     lib.nameValuePair "firmware-file-${name}" {
