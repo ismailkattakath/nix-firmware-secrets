@@ -4,5 +4,5 @@
 
 ## Checklist
 - [ ] `nix flake check` passes
-- [ ] `.nix` files formatted (`nixfmt-rfc-style`)
+- [ ] `nix fmt` run (treefmt: nixfmt + deadnix + statix)
 - [ ] No secret **values** added; README/examples updated if user-facing

@@ -6,8 +6,8 @@ it small and focused are the most welcome.
 ## Dev loop
 
 ```sh
-nix flake check                         # eval + build the module check
-nix run nixpkgs#nixfmt-rfc-style -- .    # format all .nix (CI enforces this)
+nix flake check                         # eval + build the module check + treefmt
+nix fmt                                 # treefmt: nixfmt + deadnix + statix
 nix build .#checks.x86_64-linux.module-evaluates
 nix eval  .#packages.aarch64-darwin.firmware-plant.drvPath
 ```
