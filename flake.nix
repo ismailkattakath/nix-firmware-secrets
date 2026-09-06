@@ -4,6 +4,8 @@
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   # Public read-only binary cache for this flake's build outputs (CI pushes here).
@@ -22,6 +24,8 @@
       ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.treefmt-nix.flakeModule ];
+
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -42,7 +46,19 @@
           ...
         }:
         {
-          formatter = pkgs.nixfmt-rfc-style;
+          # treefmt owns `nix fmt` and contributes its own `checks.treefmt`, so the
+          # formatter comes from THIS flake's lock -- not from whatever the CI
+          # runner's registry happens to resolve `nixpkgs#nixfmt-rfc-style` to.
+          # upstream option treefmt-nix.flakeModule exists -> using it
+          # (flake-module.nix:74 sets `checks.treefmt`, :76 sets `formatter` via
+          # mkDefault -- which is why the bare `formatter = pkgs.nixfmt-rfc-style`
+          # that used to sit here would have silently won, and had to go).
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt.enable = true;
+            programs.deadnix.enable = true;
+            programs.statix.enable = true;
+          };
 
           # macOS companion: plant files onto the mounted FAT volume. Darwin-only.
           packages = pkgs.lib.optionalAttrs (system == "aarch64-darwin") (
@@ -81,27 +97,24 @@
                 inherit system;
                 modules = [
                   self.nixosModules.default
-                  (
-                    { ... }:
-                    {
-                      boot.loader.grub.enable = false;
-                      fileSystems."/" = {
-                        device = "/dev/sda1";
-                        fsType = "ext4";
+                  (_: {
+                    boot.loader.grub.enable = false;
+                    fileSystems."/" = {
+                      device = "/dev/sda1";
+                      fsType = "ext4";
+                    };
+                    system.stateVersion = "24.05";
+                    services.firmwareProvisioning = {
+                      docsHint = "See RUNBOOK.md.";
+                      files.demo-token = {
+                        source = "demo-token";
+                        target = "/run/demo-token";
+                        required = true;
+                        before = [ "demo.service" ];
+                        requiredBy = [ "demo.service" ];
                       };
-                      system.stateVersion = "24.05";
-                      services.firmwareProvisioning = {
-                        docsHint = "See RUNBOOK.md.";
-                        files.demo-token = {
-                          source = "demo-token";
-                          target = "/run/demo-token";
-                          required = true;
-                          before = [ "demo.service" ];
-                          requiredBy = [ "demo.service" ];
-                        };
-                      };
-                    }
-                  )
+                    };
+                  })
                 ];
               };
               unit = sys.config.systemd.services."firmware-file-demo-token";

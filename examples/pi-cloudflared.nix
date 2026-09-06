@@ -2,8 +2,7 @@
 # are planted on the FAT firmware partition and copied to /run at boot -- so a
 # fresh SD flash (new SSH host key) still comes up on the network + tunnel without
 # a console. Import firmware-secrets' nixosModule and this snippet.
-{ ... }:
-{
+_: {
   services.firmwareProvisioning = {
     firmwareDir = "/boot/firmware"; # Raspberry Pi default
     docsHint = "Plant with: nix run github:kattakath/nix-firmware-secrets#firmware-plant -- cloudflared-token=./token wpa_supplicant.conf=./wpa_supplicant.conf";

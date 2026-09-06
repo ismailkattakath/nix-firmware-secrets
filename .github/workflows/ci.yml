@@ -25,11 +25,14 @@ jobs:
         with:
           name: kattakath
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Formatting
-        run: nix run nixpkgs#nixfmt-rfc-style -- --check $(find . -name '*.nix')
       - name: Flake outputs well-formed
         run: nix flake show
       - name: Module eval check
         run: nix build .#checks.x86_64-linux.module-evaluates -L
+      # treefmt's own check, from THIS flake's lock. The predecessor step ran
+      # `nix run nixpkgs#nixfmt-rfc-style`, which resolves against the RUNNER's
+      # registry -- unpinned, and free to drift from what `nix fmt` does locally.
+      - name: Formatting
+        run: nix build .#checks.x86_64-linux.treefmt -L
       - name: macOS plant app evaluates
         run: nix eval .#packages.aarch64-darwin.firmware-plant.drvPath
